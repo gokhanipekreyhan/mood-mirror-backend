@@ -13,10 +13,10 @@ app.use(express.json());
 const HUME_API_KEY = 'BGyg95w5QY2Q3Xxi30WWiyxyMgoTg7x6fkAuvG5ZG1FAzemj';
 
 const EMOTION_MAP = {
-  calm: ['Calmness','Contentment','Serenity','Relief','Satisfaction','Awe','Contemplation'],
-  happy: ['Joy','Excitement','Happiness','Amusement','Pride','Enthusiasm','Ecstasy','Interest','Surprise (positive)'],
-  stressed: ['Anxiety','Anger','Fear','Nervousness','Distress','Confusion','Contempt','Disgust','Embarrassment'],
-  tired: ['Tiredness','Boredom','Sadness','Disappointment','Empathic Pain','Guilt','Shame'],
+  calm: ['Calmness', 'Contentment', 'Serenity', 'Relief'],
+  happy: ['Joy', 'Excitement', 'Happiness', 'Amusement', 'Enthusiasm'],
+  stressed: ['Anger', 'Anxiety', 'Fear', 'Nervousness', 'Distress', 'Contempt'],
+  tired: ['Tiredness', 'Boredom', 'Sadness', 'Disappointment'],
 };
 
 function mapEmotionsToMoods(emotions) {
@@ -55,7 +55,6 @@ app.post('/analyze', upload.single('audio'), async (req, res) => {
       return res.status(400).json({ error: 'Ses dosyası bulunamadı' });
     }
 
-    // 1. Hume'a ses dosyası gönder
     const formData = new FormData();
     formData.append('file', req.file.buffer, {
       filename: 'recording.m4a',
@@ -77,7 +76,6 @@ app.post('/analyze', upload.single('audio'), async (req, res) => {
     const jobId = jobRes.data?.job_id;
     if (!jobId) throw new Error('Job ID alınamadı');
 
-    // 2. Sonucu bekle (polling - max 30 saniye)
     let emotions = null;
     for (let i = 0; i < 15; i++) {
       await new Promise(r => setTimeout(r, 2000));
