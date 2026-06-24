@@ -10,7 +10,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 app.use(cors());
 app.use(express.json());
 
-const HUME_API_KEY = 'BGyg95w5QY2Q3Xxi30WWiyxyMgoTg7x6fkAuvG5ZG1FAzemj';
+const HUME_API_KEY = 'Q1G7QN39w6P08WctUViyndiwq25PDnpGgQYWAbcggX8VEaRH';
 
 const EMOTION_MAP = {
   calm: ['Calmness', 'Contentment', 'Serenity', 'Relief'],
