@@ -62,7 +62,7 @@ app.post('/analyze', upload.single('audio'), async (req, res) => {
     }
 
     const response = await axios.post(
-      'https://api.deepgram.com/v1/listen?model=nova-2&sentiment=true&language=tr',
+      'https://api.deepgram.com/v1/listen?model=nova-2&sentiment=true&detect_language=true',
       req.file.buffer,
       {
         headers: {
@@ -74,7 +74,7 @@ app.post('/analyze', upload.single('audio'), async (req, res) => {
     );
 
     const data = response.data;
-    console.log('Deepgram response:', JSON.stringify(data?.results?.sentiments?.segments?.slice(0, 3)));
+    console.log('Deepgram full:', JSON.stringify(data?.results).slice(0, 500));
 
     const segments = data?.results?.sentiments?.segments || [];
     const average = data?.results?.sentiments?.average;
@@ -85,7 +85,6 @@ app.post('/analyze', upload.single('audio'), async (req, res) => {
     if (segments.length > 0) {
       result = mapSentimentToMoods(segments);
     } else if (average) {
-      // Fallback: average sentiment kullan
       result = mapSentimentToMoods([{ sentiment: average.sentiment, sentiment_score: average.sentiment_score }]);
     }
 
