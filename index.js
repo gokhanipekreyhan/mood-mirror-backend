@@ -13,10 +13,10 @@ app.use(express.json());
 const HUME_API_KEY = 'Q1G7QN39w6P08WctUViyndiwq25PDnpGgQYWAbcggX8VEaRH';
 
 const EMOTION_MAP = {
-  calm: ['Calmness', 'Contentment', 'Serenity', 'Relief'],
-  happy: ['Joy', 'Excitement', 'Happiness', 'Amusement', 'Enthusiasm'],
-  stressed: ['Anger', 'Anxiety', 'Fear', 'Nervousness', 'Distress', 'Contempt'],
-  tired: ['Tiredness', 'Boredom', 'Sadness', 'Disappointment'],
+  calm:     ['Calmness','Contentment','Serenity','Relief','Concentration','Satisfaction'],
+  happy:    ['Joy','Excitement','Happiness','Amusement','Enthusiasm','Pride','Ecstasy','Admiration','Adoration'],
+  stressed: ['Anger','Anxiety','Fear','Nervousness','Distress','Contempt','Disgust','Horror','Embarrassment'],
+  tired:    ['Tiredness','Boredom','Sadness','Disappointment','Empathic Pain','Guilt','Shame'],
 };
 
 function mapEmotionsToMoods(emotions) {
@@ -45,61 +45,6 @@ function mapEmotionsToMoods(emotions) {
   return { moods, dominant };
 }
 
-app.post('/analyze-debug', upload.single('audio'), async (req, res) => {
-  try {
-    if (!req.file) return res.status(400).json({ error: 'Ses yok' });
-
-    const formData = new FormData();
-    formData.append('file', req.file.buffer, {
-      filename: 'recording.m4a',
-      contentType: req.file.mimetype || 'audio/m4a',
-    });
-    formData.append('models', JSON.stringify({ prosody: {} }));
-
-    const jobRes = await axios.post(
-      'https://api.hume.ai/v0/batch/jobs',
-      formData,
-      { headers: { 'X-Hume-Api-Key': HUME_API_KEY, ...formData.getHeaders() } }
-    );
-
-    const jobId = jobRes.data?.job_id;
-
-    let rawEmotions = null;
-    for (let i = 0; i < 15; i++) {
-      await new Promise(r => setTimeout(r, 2000));
-      try {
-        const statusRes = await axios.get(
-          `https://api.hume.ai/v0/batch/jobs/${jobId}/predictions`,
-          { headers: { 'X-Hume-Api-Key': HUME_API_KEY } }
-        );
-        const predictions = statusRes.data;
-        if (predictions && predictions.length > 0) {
-          const prosody = predictions[0]?.results?.predictions?.[0]?.models?.prosody;
-          if (prosody?.grouped_predictions?.[0]?.predictions?.length > 0) {
-            const allEmotions = prosody.grouped_predictions[0].predictions
-              .flatMap(p => p.emotions || []);
-            const emotionMap = {};
-            allEmotions.forEach(({ name, score }) => {
-              if (!emotionMap[name]) emotionMap[name] = { total: 0, count: 0 };
-              emotionMap[name].total += score;
-              emotionMap[name].count += 1;
-            });
-            rawEmotions = Object.entries(emotionMap)
-              .map(([name, v]) => ({ name, score: +(v.total / v.count).toFixed(3) }))
-              .sort((a, b) => b.score - a.score)
-              .slice(0, 10);
-            break;
-          }
-        }
-      } catch (e) {}
-    }
-
-    res.json({ top10: rawEmotions });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
 app.get('/', (req, res) => {
   res.json({ status: 'Mood Mirror Backend çalışıyor!' });
 });
@@ -110,12 +55,14 @@ app.post('/analyze', upload.single('audio'), async (req, res) => {
       return res.status(400).json({ error: 'Ses dosyası bulunamadı' });
     }
 
+    // Hume EVI inference endpoint
     const formData = new FormData();
     formData.append('file', req.file.buffer, {
       filename: 'recording.m4a',
       contentType: req.file.mimetype || 'audio/m4a',
     });
     formData.append('models', JSON.stringify({ prosody: {} }));
+    formData.append('transcription', JSON.stringify({ language: 'tr' }));
 
     const jobRes = await axios.post(
       'https://api.hume.ai/v0/batch/jobs',
@@ -132,7 +79,7 @@ app.post('/analyze', upload.single('audio'), async (req, res) => {
     if (!jobId) throw new Error('Job ID alınamadı');
 
     let emotions = null;
-    for (let i = 0; i < 15; i++) {
+    for (let i = 0; i < 20; i++) {
       await new Promise(r => setTimeout(r, 2000));
       try {
         const statusRes = await axios.get(
@@ -151,10 +98,11 @@ app.post('/analyze', upload.single('audio'), async (req, res) => {
               emotionMap[name].total += score;
               emotionMap[name].count += 1;
             });
-            emotions = Object.entries(emotionMap).map(([name, v]) => ({
-              name,
-              score: v.total / v.count,
-            }));
+            emotions = Object.entries(emotionMap)
+              .map(([name, v]) => ({ name, score: v.total / v.count }))
+              .sort((a, b) => b.score - a.score);
+
+            console.log('Top emotions:', emotions.slice(0, 5).map(e => `${e.name}:${e.score.toFixed(2)}`).join(', '));
             break;
           }
         }
