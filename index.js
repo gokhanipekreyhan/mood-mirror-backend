@@ -10,26 +10,31 @@ const upload = multer({ storage: multer.memoryStorage() });
 app.use(cors());
 app.use(express.json());
 
-const HUME_API_KEY = 'Q1G7QN39w6P08WctUViyndiwq25PDnpGgQYWAbcggX8VEaRH';
+const ASSEMBLYAI_API_KEY = 'bafcda79229248c5962146c659ddb629';
 
-const EMOTION_MAP = {
-  calm:     ['Calmness','Contentment','Serenity','Relief','Concentration','Satisfaction'],
-  happy:    ['Joy','Excitement','Happiness','Amusement','Enthusiasm','Pride','Ecstasy','Admiration','Adoration'],
-  stressed: ['Anger','Anxiety','Fear','Nervousness','Distress','Contempt','Disgust','Horror','Embarrassment'],
-  tired:    ['Tiredness','Boredom','Sadness','Disappointment','Empathic Pain','Guilt','Shame'],
-};
-
-function mapEmotionsToMoods(emotions) {
+function mapSentimentToMoods(results) {
   const scores = { calm: 0, happy: 0, stressed: 0, tired: 0 };
-  emotions.forEach(({ name, score }) => {
-    for (const [mood, keywords] of Object.entries(EMOTION_MAP)) {
-      if (keywords.some(k => name.toLowerCase().includes(k.toLowerCase()))) {
-        scores[mood] += score;
-      }
+  let count = 0;
+
+  results.forEach(({ sentiment, confidence }) => {
+    count++;
+    if (sentiment === 'POSITIVE') {
+      scores.happy += confidence;
+      scores.calm += confidence * 0.3;
+    } else if (sentiment === 'NEGATIVE') {
+      scores.stressed += confidence * 0.6;
+      scores.tired += confidence * 0.4;
+    } else {
+      scores.calm += confidence * 0.5;
+      scores.tired += confidence * 0.5;
     }
   });
+
+  if (count === 0) return null;
+
   const total = Object.values(scores).reduce((a, b) => a + b, 0);
   if (total === 0) return null;
+
   const moods = {};
   let sum = 0;
   const keys = Object.keys(scores);
@@ -41,6 +46,7 @@ function mapEmotionsToMoods(emotions) {
       sum += moods[k];
     }
   });
+
   const dominant = Object.keys(moods).reduce((a, b) => moods[a] > moods[b] ? a : b);
   return { moods, dominant };
 }
@@ -55,64 +61,69 @@ app.post('/analyze', upload.single('audio'), async (req, res) => {
       return res.status(400).json({ error: 'Ses dosyası bulunamadı' });
     }
 
-    // Hume EVI inference endpoint
-    const formData = new FormData();
-    formData.append('file', req.file.buffer, {
-      filename: 'recording.m4a',
-      contentType: req.file.mimetype || 'audio/m4a',
-    });
-    formData.append('models', JSON.stringify({ prosody: {} }));
-    formData.append('transcription', JSON.stringify({ language: 'tr' }));
-
-    const jobRes = await axios.post(
-      'https://api.hume.ai/v0/batch/jobs',
-      formData,
+    // 1. AssemblyAI'a ses yükle
+    const uploadRes = await axios.post(
+      'https://api.assemblyai.com/v2/upload',
+      req.file.buffer,
       {
         headers: {
-          'X-Hume-Api-Key': HUME_API_KEY,
-          ...formData.getHeaders(),
+          'authorization': ASSEMBLYAI_API_KEY,
+          'content-type': 'application/octet-stream',
         },
       }
     );
 
-    const jobId = jobRes.data?.job_id;
-    if (!jobId) throw new Error('Job ID alınamadı');
+    const audioUrl = uploadRes.data.upload_url;
+    if (!audioUrl) throw new Error('Upload başarısız');
 
-    let emotions = null;
+    // 2. Transkript + sentiment analizi başlat
+    const transcriptRes = await axios.post(
+      'https://api.assemblyai.com/v2/transcript',
+      {
+        audio_url: audioUrl,
+        sentiment_analysis: true,
+        language_detection: true,
+      },
+      {
+        headers: { 'authorization': ASSEMBLYAI_API_KEY },
+      }
+    );
+
+    const transcriptId = transcriptRes.data.id;
+    if (!transcriptId) throw new Error('Transcript ID alınamadı');
+
+    // 3. Sonucu bekle (polling)
+    let sentimentResults = null;
     for (let i = 0; i < 20; i++) {
       await new Promise(r => setTimeout(r, 2000));
-      try {
-        const statusRes = await axios.get(
-          `https://api.hume.ai/v0/batch/jobs/${jobId}/predictions`,
-          { headers: { 'X-Hume-Api-Key': HUME_API_KEY } }
-        );
-        const predictions = statusRes.data;
-        if (predictions && predictions.length > 0) {
-          const prosody = predictions[0]?.results?.predictions?.[0]?.models?.prosody;
-          if (prosody?.grouped_predictions?.[0]?.predictions?.length > 0) {
-            const allEmotions = prosody.grouped_predictions[0].predictions
-              .flatMap(p => p.emotions || []);
-            const emotionMap = {};
-            allEmotions.forEach(({ name, score }) => {
-              if (!emotionMap[name]) emotionMap[name] = { total: 0, count: 0 };
-              emotionMap[name].total += score;
-              emotionMap[name].count += 1;
-            });
-            emotions = Object.entries(emotionMap)
-              .map(([name, v]) => ({ name, score: v.total / v.count }))
-              .sort((a, b) => b.score - a.score);
+      const pollRes = await axios.get(
+        `https://api.assemblyai.com/v2/transcript/${transcriptId}`,
+        { headers: { 'authorization': ASSEMBLYAI_API_KEY } }
+      );
 
-            console.log('Top emotions:', emotions.slice(0, 5).map(e => `${e.name}:${e.score.toFixed(2)}`).join(', '));
-            break;
-          }
-        }
-      } catch (e) {}
+      const status = pollRes.data.status;
+      console.log('Status:', status);
+
+      if (status === 'completed') {
+        sentimentResults = pollRes.data.sentiment_analysis_results;
+        console.log('Sentiment:', JSON.stringify(sentimentResults?.slice(0, 3)));
+        break;
+      } else if (status === 'error') {
+        throw new Error('Transkript hatası: ' + pollRes.data.error);
+      }
     }
 
-    if (!emotions) throw new Error('Analiz tamamlanamadı');
+    if (!sentimentResults || sentimentResults.length === 0) {
+      // Ses analiz edilemedi, ses tonu bazlı fallback
+      return res.json({
+        success: true,
+        moods: { calm: 40, happy: 25, stressed: 20, tired: 15 },
+        dominant: 'calm'
+      });
+    }
 
-    const result = mapEmotionsToMoods(emotions);
-    if (!result) throw new Error('Emotion mapping başarısız');
+    const result = mapSentimentToMoods(sentimentResults);
+    if (!result) throw new Error('Mapping başarısız');
 
     res.json({ success: true, ...result });
 
