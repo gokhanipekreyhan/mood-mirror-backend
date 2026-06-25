@@ -11,43 +11,40 @@ app.use(express.json());
 
 const DEEPGRAM_API_KEY = '184e4e12b4b6ce324d08b141265d42bcfe505290';
 
-function mapSentimentToMoods(segments) {
-  const scores = { calm: 0, happy: 0, stressed: 0, tired: 0 };
-  let total = 0;
+function mapSentimentToMoods(words) {
+  let positive = 0, negative = 0, neutral = 0, total = 0;
 
-  segments.forEach(({ sentiment, sentiment_score }) => {
-    const score = sentiment_score || 0.5;
+  words.forEach(({ sentiment, sentiment_score }) => {
+    if (!sentiment) return;
     total++;
-    if (sentiment === 'positive') {
-      scores.happy += score;
-      scores.calm += score * 0.3;
-    } else if (sentiment === 'negative') {
-      scores.stressed += score * 0.6;
-      scores.tired += score * 0.4;
-    } else {
-      scores.calm += score * 0.6;
-      scores.tired += score * 0.4;
-    }
+    const score = sentiment_score || 0.5;
+    if (sentiment === 'positive') positive += score;
+    else if (sentiment === 'negative') negative += score;
+    else neutral += score;
   });
 
   if (total === 0) return null;
 
-  const sum = Object.values(scores).reduce((a, b) => a + b, 0);
-  if (sum === 0) return null;
+  const sum = positive + negative + neutral || 1;
+  const posRatio = positive / sum;
+  const negRatio = negative / sum;
+  const neuRatio = neutral / sum;
 
-  const moods = {};
-  let cumsum = 0;
-  const keys = Object.keys(scores);
-  keys.forEach((k, i) => {
-    if (i === keys.length - 1) {
-      moods[k] = Math.max(0, 100 - cumsum);
-    } else {
-      moods[k] = Math.round((scores[k] / sum) * 100);
-      cumsum += moods[k];
-    }
-  });
+  const moods = {
+    happy: Math.round(posRatio * 70 + neuRatio * 10),
+    calm: Math.round(neuRatio * 60 + posRatio * 20),
+    stressed: Math.round(negRatio * 60),
+    tired: Math.round(negRatio * 40 + neuRatio * 20),
+  };
+
+  // Toplam 100 yap
+  const total100 = Object.values(moods).reduce((a, b) => a + b, 0);
+  const keys = Object.keys(moods);
+  keys.forEach(k => { moods[k] = Math.round((moods[k] / total100) * 100); });
+  moods.tired = Math.max(0, 100 - moods.happy - moods.calm - moods.stressed);
 
   const dominant = Object.keys(moods).reduce((a, b) => moods[a] > moods[b] ? a : b);
+  console.log('Moods:', moods, 'Dominant:', dominant);
   return { moods, dominant };
 }
 
@@ -74,19 +71,10 @@ app.post('/analyze', upload.single('audio'), async (req, res) => {
     );
 
     const data = response.data;
-    console.log('Deepgram full:', JSON.stringify(data?.results).slice(0, 500));
+    const words = data?.results?.channels?.[0]?.alternatives?.[0]?.words || [];
+    console.log('Word count:', words.length, 'Sample:', JSON.stringify(words.slice(0, 3)));
 
-    const segments = data?.results?.sentiments?.segments || [];
-    const average = data?.results?.sentiments?.average;
-
-    console.log('Average sentiment:', JSON.stringify(average));
-
-    let result;
-    if (segments.length > 0) {
-      result = mapSentimentToMoods(segments);
-    } else if (average) {
-      result = mapSentimentToMoods([{ sentiment: average.sentiment, sentiment_score: average.sentiment_score }]);
-    }
+    const result = mapSentimentToMoods(words);
 
     if (!result) {
       return res.json({
