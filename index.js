@@ -11,40 +11,45 @@ app.use(express.json());
 
 const DEEPGRAM_API_KEY = '184e4e12b4b6ce324d08b141265d42bcfe505290';
 
-function mapSentimentToMoods(words) {
-  let positive = 0, negative = 0, neutral = 0, total = 0;
+const MOOD_KEYWORDS = {
+  happy: ['mutlu','sevinçli','harika','güzel','mükemmel','süper','seviyorum','sevdim','iyi','muhteşem','neşeli','eğlenceli','keyifli','tatmin','başardım','yaptım','sevindim','memnun','şahane'],
+  stressed: ['kızgın','sinirli','nefret','berbat','korkunç','bıktım','yeter','saçma','rezalet','öfkeli','delirdim','çıldırdım','bezdim','stresli','sıkıldım','kötü','nefret ediyorum','lanet'],
+  tired: ['yorgun','bitkin','uyku','uyudum','uyuyamadım','uykusuz','yoruldum','dinlenmek','ağır','halsiz','isteksiz','bıkkın','üzgün','üzüldüm','mutsuz','kederli','bunaldım'],
+  calm: ['sakin','huzurlu','rahat','dingin','sessiz','güzel','tamam','iyi','normal','fena değil','serbest','özgür','nefes'],
+};
 
-  words.forEach(({ sentiment, sentiment_score }) => {
-    if (!sentiment) return;
-    total++;
-    const score = sentiment_score || 0.5;
-    if (sentiment === 'positive') positive += score;
-    else if (sentiment === 'negative') negative += score;
-    else neutral += score;
+function analyzeText(text) {
+  const lower = text.toLowerCase();
+  const scores = { happy: 0, stressed: 0, tired: 0, calm: 0 };
+
+  for (const [mood, keywords] of Object.entries(MOOD_KEYWORDS)) {
+    for (const kw of keywords) {
+      if (lower.includes(kw)) {
+        scores[mood] += 1;
+      }
+    }
+  }
+
+  const total = Object.values(scores).reduce((a, b) => a + b, 0);
+
+  if (total === 0) {
+    // Kelime eşleşmesi yoksa nötr/sakin döndür
+    return { moods: { calm: 45, happy: 25, stressed: 15, tired: 15 }, dominant: 'calm' };
+  }
+
+  const moods = {};
+  let sum = 0;
+  const keys = Object.keys(scores);
+  keys.forEach((k, i) => {
+    if (i === keys.length - 1) {
+      moods[k] = Math.max(0, 100 - sum);
+    } else {
+      moods[k] = Math.round((scores[k] / total) * 100);
+      sum += moods[k];
+    }
   });
 
-  if (total === 0) return null;
-
-  const sum = positive + negative + neutral || 1;
-  const posRatio = positive / sum;
-  const negRatio = negative / sum;
-  const neuRatio = neutral / sum;
-
-  const moods = {
-    happy: Math.round(posRatio * 70 + neuRatio * 10),
-    calm: Math.round(neuRatio * 60 + posRatio * 20),
-    stressed: Math.round(negRatio * 60),
-    tired: Math.round(negRatio * 40 + neuRatio * 20),
-  };
-
-  // Toplam 100 yap
-  const total100 = Object.values(moods).reduce((a, b) => a + b, 0);
-  const keys = Object.keys(moods);
-  keys.forEach(k => { moods[k] = Math.round((moods[k] / total100) * 100); });
-  moods.tired = Math.max(0, 100 - moods.happy - moods.calm - moods.stressed);
-
   const dominant = Object.keys(moods).reduce((a, b) => moods[a] > moods[b] ? a : b);
-  console.log('Moods:', moods, 'Dominant:', dominant);
   return { moods, dominant };
 }
 
@@ -58,31 +63,23 @@ app.post('/analyze', upload.single('audio'), async (req, res) => {
       return res.status(400).json({ error: 'Ses dosyası bulunamadı' });
     }
 
-    const response = await axios.post(
-      'https://api.deepgram.com/v1/listen?model=nova-2&sentiment=true&detect_language=true',
+    const dgRes = await axios.post(
+      'https://api.deepgram.com/v1/listen?model=nova-2&detect_language=true',
       req.file.buffer,
       {
         headers: {
           'Authorization': `Token ${DEEPGRAM_API_KEY}`,
           'Content-Type': req.file.mimetype || 'audio/m4a',
         },
-        timeout: 30000,
+        timeout: 15000,
       }
     );
 
-    const data = response.data;
-    const words = data?.results?.channels?.[0]?.alternatives?.[0]?.words || [];
-    console.log('Word count:', words.length, 'Sample:', JSON.stringify(words.slice(0, 3)));
+    const transcript = dgRes.data?.results?.channels?.[0]?.alternatives?.[0]?.transcript || '';
+    console.log('Transcript:', transcript);
 
-    const result = mapSentimentToMoods(words);
-
-    if (!result) {
-      return res.json({
-        success: true,
-        moods: { calm: 40, happy: 25, stressed: 20, tired: 15 },
-        dominant: 'calm'
-      });
-    }
+    const result = analyzeText(transcript);
+    console.log('Moods:', result.moods, 'Dominant:', result.dominant);
 
     res.json({ success: true, ...result });
 
