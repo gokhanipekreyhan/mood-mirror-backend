@@ -11,36 +11,61 @@ app.use(express.json());
 
 const DEEPGRAM_API_KEY = '184e4e12b4b6ce324d08b141265d42bcfe505290';
 
-// Kök kelimeler — Türkçe çekim ekleri otomatik yakalanır
-const MOOD_KEYWORDS = {
-  happy: [
-    'mutlu','sevinç','harika','mükemmel','süper','muhteşem',
-    'neşe','keyif','heyecan','coşku','güldüm','gülüyorum',
-    'seviyorum','bayıldım','başardım','sevindim','memnun'
-  ],
-  stressed: [
-    'kızgın','kızdım','kızıyorum','sinir','öfke',
-    'nefret','berbat','bıktım','bezdim','dayanamıyorum',
-    'saçma','rezalet','gıcık','çıldır','delird',
-    'kavga','bağır','lanet','istemiyorum'
-  ],
-  tired: [
-    'yorgun','yoruldum','bitkin','halsiz','dermansız',
-    'uyku','uyuyamad','uykusuz','halim yok','gücüm yok',
-    'üzgün','üzüldüm','mutsuz','keder','bunald',
-    'isteksiz','dinlen','takatim'
-  ],
-  calm: [
-    'sakin','huzur','rahat','dingin','sessiz',
-    'nefes','özgür','serbest','dinliyorum','düşünüyorum'
-  ],
+const KEYWORDS = {
+  tr: {
+    happy: [
+      'mutlu','sevinç','harika','mükemmel','süper','muhteşem','neşe','keyif',
+      'heyecan','coşku','güldüm','gülüyorum','seviyorum','bayıldım','başardım',
+      'sevindim','memnun','güzel','iyi','tatmin','şahane','sevdim','memnunum'
+    ],
+    stressed: [
+      'kızgın','kızdım','kızıyorum','sinir','sinirli','öfke','öfkeli',
+      'nefret','berbat','bıktım','bezdim','dayanamıyorum','saçma','rezalet',
+      'gıcık','çıldır','delird','kavga','bağır','lanet','istemiyorum',
+      'korkunç','yeter','bunaltıcı','sıkıntı','gergin','stresli'
+    ],
+    tired: [
+      'yorgun','yoruldum','bitkin','halsiz','dermansız','uyku','uyuyamad',
+      'uykusuz','halim yok','gücüm yok','üzgün','üzüldüm','mutsuz','keder',
+      'bunald','isteksiz','takatim','ağır','kasvetli','karamsar','çökmüş',
+      'bitik','düşkün','perişan','çaresiz','umutsuz','can sıkıntısı'
+    ],
+    calm: [
+      'sakin','huzur','rahat','dingin','sessiz','nefes','özgür','serbest',
+      'dinliyorum','düşünüyorum','anlıyorum','soğukkanlı','dengeli','kararlı',
+      'güvenli','huzurlu','tatmin','memnun','olumlu','pozitif'
+    ],
+  },
+  en: {
+    happy: [
+      'happy','joy','excited','great','amazing','wonderful','fantastic','awesome',
+      'love','loved','glad','cheerful','delighted','thrilled','ecstatic','blessed',
+      'grateful','pleased','content','satisfied','good','excellent','perfect'
+    ],
+    stressed: [
+      'angry','mad','furious','hate','terrible','awful','stressed','anxious',
+      'worried','nervous','frustrated','annoyed','irritated','upset','rage',
+      'panic','scared','fear','overwhelmed','exhausted by','fed up','sick of'
+    ],
+    tired: [
+      'tired','exhausted','sleepy','drained','weary','fatigue','bored','sad',
+      'depressed','hopeless','miserable','disappointed','lonely','empty',
+      'numb','gloomy','melancholy','down','low','unmotivated','sluggish'
+    ],
+    calm: [
+      'calm','peaceful','relaxed','serene','quiet','balanced','centered','clear',
+      'focused','mindful','steady','stable','comfortable','fine','okay','alright',
+      'neutral','composed','collected','tranquil'
+    ],
+  }
 };
 
-function analyzeText(text) {
+function analyzeText(text, lang) {
   const lower = text.toLowerCase();
+  const list = KEYWORDS[lang] || KEYWORDS.tr;
   const scores = { happy: 0, stressed: 0, tired: 0, calm: 0 };
 
-  for (const [mood, keywords] of Object.entries(MOOD_KEYWORDS)) {
+  for (const [mood, keywords] of Object.entries(list)) {
     for (const kw of keywords) {
       if (lower.includes(kw)) {
         scores[mood] += 1;
@@ -56,15 +81,20 @@ function analyzeText(text) {
     return { moods: { calm: 45, happy: 25, stressed: 15, tired: 15 }, dominant: 'calm' };
   }
 
+  // Minimum %10 her kategoriye, kalanı skorla böl
+  const BASE = 10;
+  const remaining = 100 - BASE * 4;
   const moods = {};
-  let sum = 0;
+  let sum = BASE * 4;
+
   const keys = Object.keys(scores);
   keys.forEach((k, i) => {
     if (i === keys.length - 1) {
-      moods[k] = Math.max(0, 100 - sum);
+      moods[k] = Math.max(BASE, 100 - sum);
     } else {
-      moods[k] = Math.round((scores[k] / total) * 100);
-      sum += moods[k];
+      const extra = Math.round((scores[k] / total) * remaining);
+      moods[k] = BASE + extra;
+      sum += extra;
     }
   });
 
@@ -95,9 +125,21 @@ app.post('/analyze', upload.single('audio'), async (req, res) => {
     );
 
     const transcript = dgRes.data?.results?.channels?.[0]?.alternatives?.[0]?.transcript || '';
-    console.log('Transcript:', transcript);
+    const detectedLang = dgRes.data?.results?.channels?.[0]?.detected_language || 'tr';
+    const lang = detectedLang.startsWith('en') ? 'en' : 'tr';
 
-    const result = analyzeText(transcript);
+    console.log('Transcript:', transcript);
+    console.log('Language:', lang);
+
+    if (!transcript.trim()) {
+      return res.json({
+        success: true,
+        moods: { calm: 45, happy: 25, stressed: 15, tired: 15 },
+        dominant: 'calm'
+      });
+    }
+
+    const result = analyzeText(transcript, lang);
     console.log('Moods:', result.moods, 'Dominant:', result.dominant);
 
     res.json({ success: true, ...result });
