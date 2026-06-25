@@ -11,11 +11,29 @@ app.use(express.json());
 
 const DEEPGRAM_API_KEY = '184e4e12b4b6ce324d08b141265d42bcfe505290';
 
+// Kök kelimeler — Türkçe çekim ekleri otomatik yakalanır
 const MOOD_KEYWORDS = {
-  happy: ['mutlu','sevinçli','harika','güzel','mükemmel','süper','seviyorum','sevdim','iyi','muhteşem','neşeli','eğlenceli','keyifli','tatmin','başardım','yaptım','sevindim','memnun','şahane'],
-  stressed: ['kızgın','sinirli','nefret','berbat','korkunç','bıktım','yeter','saçma','rezalet','öfkeli','delirdim','çıldırdım','bezdim','stresli','sıkıldım','kötü','nefret ediyorum','lanet'],
-  tired: ['yorgun','bitkin','uyku','uyudum','uyuyamadım','uykusuz','yoruldum','dinlenmek','ağır','halsiz','isteksiz','bıkkın','üzgün','üzüldüm','mutsuz','kederli','bunaldım'],
-  calm: ['sakin','huzurlu','rahat','dingin','sessiz','güzel','tamam','iyi','normal','fena değil','serbest','özgür','nefes'],
+  happy: [
+    'mutlu','sevinç','harika','mükemmel','süper','muhteşem',
+    'neşe','keyif','heyecan','coşku','güldüm','gülüyorum',
+    'seviyorum','bayıldım','başardım','sevindim','memnun'
+  ],
+  stressed: [
+    'kızgın','kızdım','kızıyorum','sinir','öfke',
+    'nefret','berbat','bıktım','bezdim','dayanamıyorum',
+    'saçma','rezalet','gıcık','çıldır','delird',
+    'kavga','bağır','lanet','istemiyorum'
+  ],
+  tired: [
+    'yorgun','yoruldum','bitkin','halsiz','dermansız',
+    'uyku','uyuyamad','uykusuz','halim yok','gücüm yok',
+    'üzgün','üzüldüm','mutsuz','keder','bunald',
+    'isteksiz','dinlen','takatim'
+  ],
+  calm: [
+    'sakin','huzur','rahat','dingin','sessiz',
+    'nefes','özgür','serbest','dinliyorum','düşünüyorum'
+  ],
 };
 
 function analyzeText(text) {
@@ -26,14 +44,15 @@ function analyzeText(text) {
     for (const kw of keywords) {
       if (lower.includes(kw)) {
         scores[mood] += 1;
+        console.log(`Match: "${kw}" -> ${mood}`);
       }
     }
   }
 
+  console.log('Scores:', scores);
   const total = Object.values(scores).reduce((a, b) => a + b, 0);
 
   if (total === 0) {
-    // Kelime eşleşmesi yoksa nötr/sakin döndür
     return { moods: { calm: 45, happy: 25, stressed: 15, tired: 15 }, dominant: 'calm' };
   }
 
