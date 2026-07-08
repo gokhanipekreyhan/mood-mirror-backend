@@ -70,6 +70,9 @@ const RAW = {
       'uyandım dinç','dinç uyandım','güne güzel başladım','~spor yaptım','koştum','yüzdüm',
       'bitirdim','hallettim','çözdüm','tamamladım','~alışveriş','hediye aldım','hediye ettim','sürpriz',
       'terfi','zam aldım','takdir aldım','tebrik','sınavı geçtim','sınavı kazandım','işe girdim','kabul edildim',
+      'çok iyiyim','süper hissediyorum','harika hissediyorum','moralim düzeldi','içim açıldı','yüzüm güldü',
+      'müthiş bir gün','çok eğlendik','kahkahalarla','doyasıya','hasret giderdik','kavuştuk','barıştık',
+      'maaş yattı','ikramiye','hediye geldi','sürpriz yaptı','ödül aldım','birinci oldum','gol attık',
     ],
     stressed: [
       '!kızgın','kızdım','kızıyorum','!sinir','sinirli','sinirlendim','sinirim bozuldu','gerildim',
@@ -90,6 +93,10 @@ const RAW = {
       'yetişemiyorum','yetişemedim','son dakika','teslim tarihi','~sınav var','~toplantı var','~patron',
       'kaza yaptım','kaza geçirdim','ameliyat','aldatıldım','ihanet','ayrıldık','boşan','kandırıldım','dolandırıldım',
       '~trafik','bekledim saatlerce','kuyruğa girdim','bozuldu','çalışmıyor','arıza',
+      'gına geldi','illallah','sabrım taştı','sabrım kalmadı','kafam şişti','beynim durdu','geriyor beni',
+      'deli ediyor','uğraştırdı','kabus gibi','felaket','rezil oldum','utandım','mahcup oldum',
+      'borca girdim','icra','haciz','maaş gecikti','şok oldum','küplere bindim','ateş püskürüyorum',
+      'trafik cezası','ceza yedim','araba bozuldu','arıza yaptı','su bastı','elektrik kesildi','internet gitti','telefon bozuldu',
     ],
     tired: [
       '!yorgun','!yoruldum','!çok yoruldum','!bitkin','halsiz','dermansız','~uykum var','uykum geliyor',
@@ -110,6 +117,10 @@ const RAW = {
       'yedim yattım','sadece yattım','hiç hareket etmedim','kendimi kötü hissediyorum','kötü hissettim',
       'içim boş','boşluktayım','anlamsız','kayıp hissediyorum','!yalnız','yalnızım','yalnızlık',
       'kimsem yok','kimse anlamıyor','özledim','özlem','kaybettik','vefat','cenaze','yas',
+      'yürüyecek halim yok','parmağımı kıpırdatamıyorum','beynim yandı','kafam durdu','gözlerim yanıyor',
+      'ayaklarım ağrıyor','ayaklarıma kara sular indi','sabahladım','uyku tutmadı','bitap','mecalsiz',
+      'dermanım kalmadı','moral bozuk','tadım yok','tadı tuzu yok','boğazım düğümlendi','gözlerim doldu',
+      'içlendim','hüzünlendim','karalar bağladım','yıkıldım','sarsıldım','perişanım',
     ],
     calm: [
       '!sakin','sakinim','!huzur','!huzurlu','huzurluyum','!rahat','rahatım','rahatladım','ferahladım',
@@ -126,6 +137,10 @@ const RAW = {
       'düzenledim','temizlik yaptım','toparladım','sohbet ettim','güzel vakit geçirdim','keyifli geçti',
       'verimli çalıştım','~ailemle','~eşimle','~çocuklarımla','sevdiklerimle','dua ettim','~namaz','ibadet',
       'şükrettim','mola verdim','ara verdim','izin günü','~hafta sonu','tatildeyim',
+      '~yürüdüm','sakinleştim','gevşedim','kafamı dinledim','kafa dinledim','şöyle bir oturdum',
+      'manzara izledim','balkonda oturdum','çayımı yudumladım','huzur buldum','içim ferahladı',
+      'derin bir nefes','oh be','rahat bir nefes','sorun kalmadı','halloldu','rayına oturdu',
+      'stres attım','balık tuttum','denize girdim','serinledim','şekerleme yaptım','kestirdim','erkenden yattım',
     ],
   },
   en: {
@@ -141,7 +156,7 @@ const RAW = {
       'went out','hung out','met friends','~party','gathered','reunited','caught up with','laughed so hard','hilarious',
       'traveled','visited','explored','~vacation','~holiday','beach day','~sunny','sunshine',
       'delicious','yummy','tasty','ate well','enjoyed','treat myself','treated myself',
-      'worked out','jogged','swam','hiked','cycled','went for a run',
+      'worked out','jogged','went swimming','hiked','cycled','went for a run',
       'bought','got a gift','surprised','unexpected good','!got promoted','promotion','got a raise','~bonus',
       'passed the exam','got the job','engagement','engaged','wedding','newborn','my baby','puppy','kitten',
       'complimented','praised','appreciated','woke up energized','productive day','proud of myself','so proud',
@@ -165,6 +180,7 @@ const RAW = {
       'behind schedule','behind on','running out of time','!breakup','broke up','!divorce','cheated on','betrayed',
       'lied to me','scammed','~bills','~rent','debt','cant afford',"can't afford",'!disaster','!nightmare','!worst day',
       '~boss','~exam','test tomorrow','toxic','drama','spilled','ruined',
+      'sick and tired of','fed up with','car broke down','power went out','internet went down','got a fine','parking ticket',
     ],
     tired: [
       '!tired','!exhausted','sleepy','!drained','weary','fatigue','fatigued','bored','boring','!sad','sadness',
@@ -182,6 +198,7 @@ const RAW = {
       'got sick','feeling sick','sick today','headache','!migraine','backache','body ache','sore all over','aching',
       '~flu','fever','ate nothing','no appetite','skipped meals','forgot to eat','stayed home','couldnt go out',
       'didnt want to move','lost someone','missing someone','heartache',
+      'can barely move','feet are killing me','brain is fried','no sleep at all',
     ],
     calm: [
       '!calm','!peaceful','!relaxed','serene','quiet','balanced','centered','clear headed','focused','mindful',
@@ -198,6 +215,7 @@ const RAW = {
       'cooked','baked','gardened','crafted','organized','planned','cleaned','tidied up','decluttered',
       'spent time with family','quality time','good conversation','laughed with friends','enjoyed the moment',
       'beautiful day','nice weather','ticked off list','productive','watched a good movie','listened to music','~hobby',
+      'took a walk','went for a walk','cleared my head','watched the sunset','let off steam',
     ],
   },
   es: {
@@ -604,24 +622,48 @@ function isNegated(hay, idx, termLen, lang) {
 // ---- Analiz ----
 function analyzeText(text, lang) {
   const lower = text.toLowerCase();
+  const compactLangs = (lang === 'ko' || lang === 'zh');
   // Korece/Çince transkriptlerde boşluklar eşleşmeyi bozabilir; boşluksuz kopyada ara
-  const hay = (lang === 'ko' || lang === 'zh') ? lower.replace(/\s+/g, '') : lower;
+  const hay = compactLangs ? lower.replace(/\s+/g, '') : lower;
   const dict = KEYWORDS[lang] || KEYWORDS.en;
   const scores = { happy: 0, stressed: 0, tired: 0, calm: 0 };
   const matched = [];
 
+  // 1) Tüm eşleşmeleri topla — kelime başı sınırıyla (ko/zh hariç)
+  const found = [];
   for (const [mood, entries] of Object.entries(dict)) {
     for (const [term, weight] of entries) {
-      const idx = hay.indexOf(term);
-      if (idx !== -1) {
-        if (isNegated(hay, idx, term.length, lang)) {
-          scores[NEG_TARGET[mood]] += weight;
-          matched.push(`NEG "${term}" ${mood}->${NEG_TARGET[mood]} +${weight}`);
-        } else {
-          scores[mood] += weight;
-          matched.push(`"${term}" ${mood} +${weight}`);
-        }
+      let idx = -1, from = 0;
+      while (true) {
+        const i = hay.indexOf(term, from);
+        if (i === -1) break;
+        if (compactLangs || i === 0 || !/\p{L}/u.test(hay[i - 1])) { idx = i; break; }
+        from = i + 1; // kelime ortasında — sonraki eşleşmeye bak (örn. 'iyi' ⊄ 'endişeliyim')
       }
+      if (idx !== -1) found.push({ mood, term, weight, idx, end: idx + term.length });
+    }
+  }
+
+  // 2) Uzun eşleşme kazanır: kısa terim, onu kapsayan daha uzun bir eşleşmenin içindeyse elenir
+  //    (örn. 'hiçbir şey yolunda değil' varken içindeki 'yolunda' ayrıca sayılmaz)
+  const kept = found.filter(a => !found.some(b =>
+    b !== a && b.term.length > a.term.length && b.term.includes(a.term) &&
+    a.idx >= b.idx && a.end <= b.end
+  ));
+
+  // 3) Skorla + olumsuzlama (+ Türkçe -sIz eki = yokluk bildirir → tersine çevir)
+  for (const f of kept) {
+    let neg = isNegated(hay, f.idx, f.term.length, lang);
+    if (!neg && lang === 'tr') {
+      const after = hay.slice(f.end, f.end + 3);
+      if (/^s[ıiuü]z/.test(after)) neg = true; // neşe+siz, huzur+suz, rahat+sız...
+    }
+    if (neg) {
+      scores[NEG_TARGET[f.mood]] += f.weight;
+      matched.push(`NEG "${f.term}" ${f.mood}->${NEG_TARGET[f.mood]} +${f.weight}`);
+    } else {
+      scores[f.mood] += f.weight;
+      matched.push(`"${f.term}" ${f.mood} +${f.weight}`);
     }
   }
 
@@ -714,4 +756,4 @@ app.listen(PORT, () => {
   console.log(`Mood Mirror Backend port ${PORT} üzerinde çalışıyor`);
 });
 
-module.exports = { analyzeText };
+module.exports = { analyzeText, KEYWORDS };
